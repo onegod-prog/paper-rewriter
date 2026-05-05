@@ -11,15 +11,14 @@ version = 1.0.0
 # 作者
 author = onegod
 
-# 需求
-requirements = python3,kivy,kivymd,requests,jieba,nltk,urllib3,chardet,certifi,idna
+# 需求 (不锁版本以避免p4a冲突，移除nltk)
+requirements = python3,kivy,kivymd,requests,jieba,urllib3,chardet,certifi,idna
 
 # Android 配置
 android.api = 34
 android.minapi = 21
 android.targetapi = 34
 android.sdk = 34
-android.ndk = 27
 android.gradle_dependencies = 'com.google.android.material:material:1.9.0'
 android.permissions = INTERNET
 android.archs = arm64-v8a
@@ -29,23 +28,12 @@ android.wakelock = false
 android.fullscreen = false
 android.window_orientation = portrait
 android.accept_sdk_license = true
-
-# 图标 (可选)
-#android.icon = icon.png
-#android.splash = splash.png
-#android.presplash_color = #1a73e8
+android.google_play_services = false
 
 # 打包配置
-p4a.branch = develop
 p4a.skip_git_check = true
-#p4a.local_recipes = <path-to-recipes>
-
-# iOS (暂不启用)
-#ios.codesign.allowed = false
+p4a.ignore_requirements = nltk
 
 [buildozer]
-log_level = 2
+log_level = 1
 warn_on_root = 1
-
-# 构建输出目录
-#bin_dir = ./bin
