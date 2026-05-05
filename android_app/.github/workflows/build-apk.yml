@@ -1,0 +1,86 @@
+name: 构建 Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'android_app/**'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip openjdk-17-jdk \
+            python3-pip autoconf libtool \
+            pkg-config zlib1g-dev libncurses5-dev \
+            libncursesw5-dev libtinfo5 cmake \
+            libffi-dev libssl-dev
+          pip install --upgrade pip
+          pip install cython virtualenv
+
+      - name: 安装 Buildozer
+        run: |
+          pip install buildozer
+
+      - name: 缓存 Buildozer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            ~/.gradle
+          key: buildozer-${{ runner.os }}-${{ hashFiles('android_app/buildozer.spec') }}
+
+      - name: 构建 APK
+        run: |
+          cd android_app
+          buildozer android debug
+        env:
+          BUILD_REQUIREMENTS: 1
+
+      - name: 上传 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 论文降重助手-APK
+          path: android_app/bin/*.apk
+          if-no-files-found: error
+
+      - name: 获取 APK 文件名
+        id: get_apk
+        run: |
+          echo "apk_name=$(ls android_app/bin/*.apk | head -1 | xargs basename)" >> $GITHUB_OUTPUT
+
+      - name: 创建 Release 标签
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: 论文降重助手 v1.0.${{ github.run_number }}
+          body: |
+            ## 论文降重助手 Android APK
+
+            作者: onegod
+
+            ### 功能
+            - 📄 全文降重 - 一键改写整篇文章
+            - ✂️ 选中降重 - 只改写选中的文字
+            - 📋 查重降重 - 根据查重报告改写重复内容
+            - 🤖 支持本地引擎和AI增强双模式
+
+            ### 安装说明
+            下载 APK 后，在手机文件管理器中点击安装。
+            如提示"未知来源"，请在设置中允许安装未知来源应用。
+          files: android_app/bin/*.apk

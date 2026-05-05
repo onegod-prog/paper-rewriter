@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a73e8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>论文降重助手</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✏️</text></svg>">
+<style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #1a73e8;
+  --primary-dark: #1557b0;
+  --success: #34a853;
+  --warning: #fbbc04;
+  --danger: #ea4335;
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --text: #202124;
+  --text-secondary: #5f6368;
+  --border: #dadce0;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  padding-bottom: 80px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ===== Header ===== */
+.header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  padding: 16px 16px 12px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+}
+.header-top { display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+.header .subtitle { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.header .author { font-size: 11px; opacity: 0.7; }
+
+/* ===== Config Bar ===== */
+.config-bar {
+  background: var(--card);
+  padding: 10px 16px;
+  margin: 8px 12px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.config-bar select, .config-bar button {
+  font-size: 14px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border);
+  background: white; color: var(--text); cursor: pointer; outline: none;
+}
+.config-bar select:focus { border-color: var(--primary); }
+.config-bar .group-label { font-size: 12px; color: var(--text-secondary); margin-right: -4px; }
+.config-bar .mode-tabs {
+  display: flex; gap: 2px; background: #f0f2f5; padding: 2px; border-radius: 8px; width: 100%;
+}
+.config-bar .mode-tab {
+  flex: 1; text-align: center; padding: 6px 0; border-radius: 6px;
+  font-size: 13px; font-weight: 500; border: none; background: transparent; color: var(--text-secondary);
+  transition: all 0.2s;
+}
+.config-bar .mode-tab.active { background: white; color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+/* ===== Mode Hint ===== */
+.mode-hint {
+  margin: 0 12px 8px; padding: 8px 12px; background: #e8f0fe; border-radius: 8px;
+  font-size: 13px; color: var(--primary-dark); display: flex; align-items: center; gap: 6px;
+}
+.mode-hint .icon { font-size: 16px; }
+
+/* ===== Cards ===== */
+.card {
+  background: var(--card);
+  margin: 8px 12px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-header {
+  padding: 10px 14px;
+  font-size: 14px; font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-body { padding: 10px 14px; }
+
+/* ===== Textarea ===== */
+.text-input, .text-output {
+  width: 100%; min-height: 120px; max-height: 300px;
+  border: none; outline: none; resize: vertical;
+  font-size: 14px; line-height: 1.7;
+  font-family: inherit;
+  padding: 0;
+}
+.text-input::placeholder { color: #9aa0a6; }
+.text-output { white-space: pre-wrap; word-break: break-word; min-height: 60px; }
+.text-output:empty::before { content: '改写结果将在这里显示'; color: #9aa0a6; }
+
+/* ===== Button ===== */
+.btn-primary {
+  display: block; width: calc(100% - 24px); margin: 12px auto;
+  padding: 14px; border: none; border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white; font-size: 17px; font-weight: 600;
+  box-shadow: 0 4px 12px rgba(26,115,232,0.35);
+  cursor: pointer; transition: all 0.2s;
+  position: fixed; bottom: 8px; left: 0; right: 0; z-index: 200;
+}
+.btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.5; transform: none; }
+.btn-primary.loading { pointer-events: none; }
+.btn-primary .spinner { display: none; }
+.btn-primary.loading .spinner { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.btn-small {
+  padding: 6px 14px; border: 1px solid var(--primary); background: white;
+  color: var(--primary); border-radius: 8px; font-size: 13px; cursor: pointer;
+}
+.btn-small:active { background: #e8f0fe; }
+.btn-small.danger { border-color: var(--danger); color: var(--danger); }
+.btn-small.danger:active { background: #fce8e6; }
+
+/* ===== Selection Mode ===== */
+.selection-toolbar { display: flex; gap: 6px; padding: 8px 0 0; flex-wrap: wrap; }
+.selection-toolbar .btn-small { flex: 1; text-align: center; }
+
+/* ===== Report Dialog ===== */
+.dialog-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300;
+  display: none; align-items: flex-end; justify-content: center;
+}
+.dialog-overlay.show { display: flex; }
+.dialog {
+  background: white; width: 100%; max-height: 85vh; border-radius: 16px 16px 0 0;
+  padding: 20px 16px; overflow-y: auto; animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.dialog h3 { font-size: 18px; margin-bottom: 4px; }
+.dialog .hint { font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; }
+.dialog textarea { width: 100%; min-height: 150px; border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px; font-size: 14px; font-family: inherit; resize: vertical; outline: none; }
+.dialog textarea:focus { border-color: var(--primary); }
+.dialog .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+.dialog .btn-row button { flex: 1; padding: 10px; border-radius: 8px; border: none;
+  font-size: 15px; font-weight: 500; cursor: pointer; }
+.dialog .btn-row .primary { background: var(--primary); color: white; }
+.dialog .btn-row .secondary { background: #f0f2f5; color: var(--text); }
+.dialog .options { margin: 8px 0; font-size: 13px; display: flex; gap: 12px; }
+.dialog .options label { display: flex; align-items: center; gap: 4px; color: var(--text-secondary); }
+
+/* ===== Result ===== */
+.result-eval { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.eval-item { flex: 1; text-align: center; }
+.eval-item .label { font-size: 11px; color: var(--text-secondary); }
+.eval-item .value { font-size: 18px; font-weight: 700; }
+.eval-item .value.good { color: var(--success); }
+.eval-item .value.warn { color: var(--warning); }
+.eval-item .value.bad { color: var(--danger); }
+.eval-arrow { font-size: 20px; color: var(--text-secondary); }
+
+.reduction { text-align: center; margin-top: 6px; font-size: 14px; font-weight: 600; }
+.reduction.down { color: var(--success); }
+.reduction.up { color: var(--danger); }
+
+.stats { font-size: 12px; color: var(--text-secondary); margin-top: 6px; text-align: center; }
+
+/* ===== API Settings ===== */
+.api-row { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+.api-row label { font-size: 13px; width: 65px; color: var(--text-secondary); flex-shrink: 0; }
+.api-row input { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+  font-size: 14px; outline: none; }
+.api-row input:focus { border-color: var(--primary); }
+
+/* ===== Toast ===== */
+.toast {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+  background: #323232; color: white; padding: 10px 20px; border-radius: 8px;
+  font-size: 14px; z-index: 500; opacity: 0; transition: opacity 0.3s;
+  pointer-events: none; max-width: 90%; text-align: center;
+}
+.toast.show { opacity: 1; }
+
+/* ===== Copy Button ===== */
+.copy-btn {
+  background: none; border: none; color: var(--primary); font-size: 13px; cursor: pointer;
+  padding: 4px 8px; border-radius: 4px;
+}
+.copy-btn:active { background: #e8f0fe; }
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center; padding: 16px; font-size: 12px; color: var(--text-secondary);
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <h1>✏️ 论文降重助手</h1>
+      <div class="subtitle">AI率降低 · 查重降重</div>
+    </div>
+    <div class="author">作者: onegod</div>
+  </div>
+</div>
+
+<!-- Config Bar -->
+<div class="config-bar">
+  <span class="group-label">语言</span>
+  <select id="lang">
+    <option value="zh">中文</option>
+    <option value="en">English</option>
+  </select>
+
+  <span class="group-label">力度</span>
+  <select id="intensity">
+    <option value="light">轻</option>
+    <option value="medium" selected>中</option>
+    <option value="heavy">重</option>
+  </select>
+
+  <span class="group-label">引擎</span>
+  <select id="mode">
+    <option value="local">本地引擎</option>
+    <option value="api">AI增强</option>
+  </select>
+
+  <button class="btn-small" onclick="showApiSettings()">API</button>
+
+  <div class="mode-tabs" style="margin-top:4px">
+    <button class="mode-tab active" data-mode="full" onclick="switchMode('full')">📄 全文降重</button>
+    <button class="mode-tab" data-mode="selection" onclick="switchMode('selection')">✂️ 选中降重</button>
+    <button class="mode-tab" data-mode="report" onclick="switchMode('report')">📋 报告降重</button>
+  </div>
+</div>
+
+<!-- Mode Hint -->
+<div class="mode-hint" id="modeHint">
+  <span class="icon">💡</span>
+  <span>全文降重：粘贴或输入论文全文，点击下方按钮一键改写</span>
+</div>
+
+<!-- Input Card -->
+<div class="card" id="inputCard">
+  <div class="card-header">
+    <span>📄 原文</span>
+    <div>
+      <button class="btn-small" onclick="pasteText()">粘贴</button>
+      <button class="btn-small" onclick="clearText()">清空</button>
+    </div>
+  </div>
+  <div class="card-body">
+    <textarea class="text-input" id="inputText" placeholder="粘贴或输入论文内容..." rows="6"></textarea>
+    <!-- 选中模式工具栏 -->
+    <div class="selection-toolbar" id="selectionToolbar" style="display:none">
+      <button class="btn-small" onclick="rewriteSelection()">✂️ 改写选中文字</button>
+    </div>
+    <!-- 报告模式工具栏 -->
+    <div class="selection-toolbar" id="reportToolbar" style="display:none">
+      <button class="btn-small" onclick="showReportDialog()">📋 导入查重报告</button>
+    </div>
+  </div>
+</div>
+
+<!-- Result Card -->
+<div class="card" id="resultCard" style="display:none">
+  <div class="card-header">
+    <span>✅ 改写结果</span>
+    <button class="copy-btn" onclick="copyResult()">📋 复制</button>
+  </div>
+  <div class="card-body">
+    <div class="text-output" id="outputText"></div>
+    <div class="result-eval" id="evalArea">
+      <div class="eval-item">
+        <div class="label">原文AI率</div>
+        <div class="value" id="beforeScore">--</div>
+      </div>
+      <div class="eval-arrow">➡</div>
+      <div class="eval-item">
+        <div class="label">改写后AI率</div>
+        <div class="value" id="afterScore">--</div>
+      </div>
+    </div>
+    <div class="reduction" id="reductionArea"></div>
+    <div class="stats" id="statsArea"></div>
+  </div>
+</div>
+
+<!-- Floating Rewrite Button -->
+<button class="btn-primary" id="rewriteBtn" onclick="startRewrite()">
+  <span class="spinner">⏳</span>
+  <span class="btn-text">✏️  开始降重</span>
+</button>
+
+<!-- Report Dialog -->
+<div class="dialog-overlay" id="reportDialog">
+  <div class="dialog">
+    <h3>📋 导入查重报告</h3>
+    <div class="hint">从查重报告中复制标红的重复句子/段落，粘贴到下方（每行一个）</div>
+    <textarea id="reportText" placeholder="# 每行粘贴一个重复的句子&#10;# 工具会自动在原文中查找并改写"></textarea>
+    <div class="options">
+      <label><input type="checkbox" id="fuzzyMatch" checked> 模糊匹配</label>
+    </div>
+    <div class="btn-row">
+      <button class="secondary" onclick="closeReportDialog()">取消</button>
+      <button class="primary" onclick="matchAndRewrite()">🔍 查找并降重</button>
+    </div>
+  </div>
+</div>
+
+<!-- API Settings Dialog -->
+<div class="dialog-overlay" id="apiDialog">
+  <div class="dialog">
+    <h3>⚙️ API设置</h3>
+    <div class="hint">支持 OpenAI 兼容接口 (GPT/Claude/DeepSeek)</div>
+    <div class="api-row"><label>API地址</label><input id="apiUrl" placeholder="https://api.openai.com/v1"></div>
+    <div class="api-row"><label>API密钥</label><input id="apiKey" type="password" placeholder="sk-..."></div>
+    <div class="api-row"><label>模型名</label><input id="apiModel" placeholder="gpt-4o-mini"></div>
+    <div class="api-row"><label>温度</label><input id="apiTemp" placeholder="0.8"></div>
+    <div class="btn-row">
+      <button class="secondary" onclick="closeApiDialog()">取消</button>
+      <button class="primary" onclick="saveApiSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Footer -->
+<div class="footer">
+  论文降重助手 v1.0 · 作者: onegod · 仅本地处理，数据安全
+</div>
+
+<script>
+// ============= State =============
+let currentMode = 'full';
+let isRewriting = false;
+let lastResult = '';
+
+// ============= Mode Switching =============
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.mode-tab[data-mode="${mode}"]`).classList.add('active');
+  document.getElementById('selectionToolbar').style.display = mode === 'selection' ? 'flex' : 'none';
+  document.getElementById('reportToolbar').style.display = mode === 'report' ? 'flex' : 'none';
+  document.getElementById('resultCard').style.display = 'none';
+
+  const hints = {
+    full: '💡 全文降重：粘贴或输入论文全文，点击下方按钮一键改写',
+    selection: '✂️ 选中降重：在原文中用手指选中需要降重的文字，点击「改写选中」',
+    report: '📋 报告降重：点击「导入查重报告」粘贴重复句子，自动匹配改写'
+  };
+  document.querySelector('#modeHint span:last-child').textContent = hints[mode];
+
+  const btnText = { full: '✏️  开始降重', selection: '✂️  改写选中', report: '📋  报告降重' };
+  document.querySelector('#rewriteBtn .btn-text').textContent = btnText[mode];
+}
+
+// ============= Main Rewrite Entry =============
+async function startRewrite() {
+  if (isRewriting) return;
+  if (currentMode === 'selection') { rewriteSelection(); return; }
+  if (currentMode === 'report') { showReportDialog(); return; }
+
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) { showToast('请先输入需要降重的文本'); return; }
+
+  await doRewrite('/api/rewrite', { text });
+}
+
+// ============= Full Rewrite =============
+async function doRewrite(endpoint, payload) {
+  setRewriting(true);
+  try {
+    payload.lang = document.getElementById('lang').value;
+    payload.intensity = document.getElementById('intensity').value;
+    payload.mode = document.getElementById('mode').value;
+    payload.strategies = ['synonym', 'pattern', 'voice', 'connector'];
+
+    if (payload.mode === 'api') {
+      const check = await fetch('/api/status').then(r => r.json());
+      if (!check.api_configured) {
+        showToast('请先配置API密钥');
+        setRewriting(false);
+        return;
+      }
+    }
+
+    // 如果是选中模式，从输入框获取选中文本
+    if (currentMode === 'selection') {
+      const input = document.getElementById('inputText');
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      const selection = input.value.substring(start, end).trim();
+      if (!selection) { showToast('请先在原文中选中需要降重的文字'); setRewriting(false); return; }
+      payload.original = input.value;
+      payload.selection = selection;
+    }
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.error) { showToast(data.error); setRewriting(false); return; }
+
+    lastResult = data.rewritten;
+    document.getElementById('outputText').textContent = data.rewritten;
+    document.getElementById('resultCard').style.display = 'block';
+
+    // 更新评估
+    const ev = data.evaluation || {};
+    updateEval(ev.before, ev.after);
+
+    // 更新原文（选中模式/报告模式会改写原文）
+    if (currentMode === 'selection' || currentMode === 'report') {
+      document.getElementById('inputText').value = data.rewritten;
+    }
+
+    // 统计信息
+    const stats = data.stats || {};
+    const statParts = Object.entries(stats).filter(([k, v]) => v).map(([k, v]) => `${k}: ${v}处`);
+    document.getElementById('statsArea').textContent = statParts.join(' | ');
+
+    // 滚动到结果
+    document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+
+    showToast('降重完成 ✅');
+  } catch (e) {
+    showToast('请求失败: ' + e.message);
+  }
+  setRewriting(false);
+}
+
+// ============= Selection Rewrite =============
+async function rewriteSelection() {
+  const input = document.getElementById('inputText');
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  const selection = input.value.substring(start, end).trim();
+
+  if (!selection) {
+    showToast('请先在原文中用手指选中需要降重的文字');
+    return;
+  }
+
+  setRewriting(true);
+  try {
+    const payload = {
+      original: input.value,
+      selection: selection,
+      lang: document.getElementById('lang').value,
+      intensity: document.getElementById('intensity').value,
+      mode: document.getElementById('mode').value,
+      strategies: ['synonym', 'pattern', 'voice', 'connector']
+    };
+
+    const res = await fetch('/api/rewrite_selection', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.error) { showToast(data.error); setRewriting(false); return; }
+
+    lastResult = data.rewritten;
+    document.getElementById('inputText').value = data.rewritten;
+    document.getElementById('outputText').textContent =
+      `【选中部分改写前后对照】\n\n原文: ${data.selection_original}\n\n改写: ${data.selection_rewritten}`;
+    document.getElementById('resultCard').style.display = 'block';
+    updateEval(data.evaluation.before, data.evaluation.after);
+
+    const stats = data.stats || {};
+    const statParts = Object.entries(stats).filter(([k, v]) => v).map(([k, v]) => `${k}: ${v}处`);
+    document.getElementById('statsArea').textContent = statParts.join(' | ');
+    document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+    showToast('选中降重完成 ✅');
+  } catch (e) {
+    showToast('请求失败: ' + e.message);
+  }
+  setRewriting(false);
+}
+
+// ============= Report Mode =============
+function showReportDialog() {
+  document.getElementById('reportDialog').classList.add('show');
+}
+
+function closeReportDialog() {
+  document.getElementById('reportDialog').classList.remove('show');
+}
+
+async function matchAndRewrite() {
+  const reportText = document.getElementById('reportText').value;
+  const lines = reportText.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  if (lines.length === 0) { showToast('请先粘贴查重报告中的重复句子'); return; }
+
+  const original = document.getElementById('inputText').value.trim();
+  if (!original) { showToast('原文为空，请先粘贴论文内容'); return; }
+
+  const fuzzy = document.getElementById('fuzzyMatch').checked;
+  const matched = [];
+
+  for (const line of lines) {
+    if (original.includes(line)) {
+      matched.push(line);
+    } else if (fuzzy) {
+      const cleanLine = line.replace(/[\s,，。、；：！？""（）《》【】'']/g, '');
+      const cleanOrig = original.replace(/[\s,，。、；：！？""（）《》【】'']/g, '');
+      if (cleanLine.length >= 10 && cleanOrig.includes(cleanLine)) {
+        matched.push(line);
+      }
+    }
+  }
+
+  closeReportDialog();
+
+  if (matched.length === 0) {
+    showToast('未在原文中找到匹配的重复句子');
+    return;
+  }
+
+  setRewriting(true);
+  try {
+    const payload = {
+      original: original,
+      sentences: matched,
+      lang: document.getElementById('lang').value,
+      intensity: document.getElementById('intensity').value,
+      mode: document.getElementById('mode').value,
+      strategies: ['synonym', 'pattern', 'voice', 'connector']
+    };
+
+    const res = await fetch('/api/rewrite_sentences', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.error) { showToast(data.error); setRewriting(false); return; }
+
+    lastResult = data.rewritten;
+    document.getElementById('inputText').value = data.rewritten;
+
+    // 显示改写对照
+    let detailText = `共改写 ${data.matched_count} 处重复内容\n\n`;
+    (data.sentences || []).forEach(s => {
+      detailText += `【原文】${s.original}\n【改写】${s.rewritten}\n\n`;
+    });
+    document.getElementById('outputText').textContent = detailText;
+    document.getElementById('resultCard').style.display = 'block';
+    updateEval(data.evaluation.before, data.evaluation.after);
+
+    document.getElementById('statsArea').textContent = `查重降重: ${data.matched_count}处`;
+    document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+    showToast(`查重降重完成 ✅ 改写${data.matched_count}处`);
+  } catch (e) {
+    showToast('请求失败: ' + e.message);
+  }
+  setRewriting(false);
+}
+
+// ============= Evaluation Display =============
+function updateEval(before, after) {
+  const bEl = document.getElementById('beforeScore');
+  const aEl = document.getElementById('afterScore');
+
+  bEl.textContent = before != null ? before.toFixed(0) + '%' : '--';
+  aEl.textContent = after != null ? after.toFixed(0) + '%' : '--';
+
+  bEl.className = 'value ' + (before >= 70 ? 'bad' : before >= 40 ? 'warn' : 'good');
+  aEl.className = 'value ' + (after >= 70 ? 'bad' : after >= 40 ? 'warn' : 'good');
+
+  if (before != null && after != null) {
+    const diff = before - after;
+    const area = document.getElementById('reductionArea');
+    if (diff > 0) {
+      area.innerHTML = `📉 AI率降低 <strong>${diff.toFixed(0)}%</strong>`;
+      area.className = 'reduction down';
+    } else if (diff < 0) {
+      area.innerHTML = `📈 AI率升高 <strong>${Math.abs(diff).toFixed(0)}%</strong>`;
+      area.className = 'reduction up';
+    } else {
+      area.innerHTML = '➡ AI率无变化';
+      area.className = 'reduction';
+    }
+  }
+}
+
+// ============= Utility =============
+function setRewriting(val) {
+  isRewriting = val;
+  const btn = document.getElementById('rewriteBtn');
+  btn.disabled = val;
+  btn.classList.toggle('loading', val);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function pasteText() {
+  navigator.clipboard.readText().then(t => {
+    document.getElementById('inputText').value = t;
+    showToast('已粘贴');
+  }).catch(() => showToast('粘贴失败，请手动粘贴'));
+}
+
+function clearText() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('resultCard').style.display = 'none';
+}
+
+function copyResult() {
+  if (!lastResult) { showToast('没有可复制的内容'); return; }
+  navigator.clipboard.writeText(lastResult).then(() => {
+    showToast('已复制到剪贴板');
+  }).catch(() => showToast('复制失败'));
+}
+
+// ============= API Settings =============
+function showApiSettings() {
+  document.getElementById('apiDialog').classList.add('show');
+}
+
+function closeApiDialog() {
+  document.getElementById('apiDialog').classList.remove('show');
+}
+
+async function saveApiSettings() {
+  const payload = {
+    api_key: document.getElementById('apiKey').value.trim(),
+    api_url: document.getElementById('apiUrl').value.trim() || 'https://api.openai.com/v1',
+    model: document.getElementById('apiModel').value.trim() || 'gpt-4o-mini',
+    temperature: parseFloat(document.getElementById('apiTemp').value) || 0.8
+  };
+
+  try {
+    const res = await fetch('/api/config_api', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      showToast('API设置已保存');
+      closeApiDialog();
+    }
+  } catch (e) {
+    showToast('保存失败: ' + e.message);
+  }
+}
+
+// ============= Text Selection Handling =============
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('inputText');
+  input.addEventListener('mouseup', () => {
+    if (currentMode === 'selection') {
+      const sel = input.value.substring(input.selectionStart, input.selectionEnd).trim();
+      if (sel) {
+        document.querySelector('#rewriteBtn .btn-text').textContent = `✂️ 改写选中 (${sel.length}字)`;
+      }
+    }
+  });
+  input.addEventListener('touchend', () => {
+    setTimeout(() => {
+      if (currentMode === 'selection') {
+        const sel = input.value.substring(input.selectionStart, input.selectionEnd).trim();
+        if (sel) {
+          document.querySelector('#rewriteBtn .btn-text').textContent = `✂️ 改写选中 (${sel.length}字)`;
+        }
+      }
+    }, 100);
+  });
+});
+</script>
+</body>
+</html>
