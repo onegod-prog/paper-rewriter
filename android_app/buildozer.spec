@@ -7,8 +7,6 @@ package.domain = com.onegod.paperrewriter
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,ttf,otf
 version = 1.0.0
-version.regex = __version__\s*=\s*['"](.*?)['"]
-version.filename = %(source.dir)s/main.py
 
 # 作者
 author = onegod
